@@ -1,29 +1,35 @@
 package com.grupobarreto.asistencia.controller;
 
-import com.grupobarreto.asistencia.model.RegistroAsistencia;
-import com.grupobarreto.asistencia.model.RegistroResponse;
+import com.grupobarreto.asistencia.dto.MarcarAsistenciaRequest;
+import com.grupobarreto.asistencia.dto.MarcarAsistenciaResponse;
+import com.grupobarreto.asistencia.model.Asistencia;
 import com.grupobarreto.asistencia.service.AsistenciaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = "http://localhost:4200")
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/asistencia")
+@RequestMapping("/api/asistencias")
+@CrossOrigin(origins = "http://localhost:4200")
 public class AsistenciaController {
 
     @Autowired
     private AsistenciaService asistenciaService;
 
-    // Recibe JSON en el body
-    @PostMapping("/marcarEntrada")
-    public RegistroResponse marcarEntrada(@RequestBody RegistroAsistencia payload) {
-        return asistenciaService.marcarEntrada(payload.getIdEmpleado(), payload.getNombre());
+    @PostMapping("/entrada")
+    public MarcarAsistenciaResponse marcarEntrada(@RequestBody MarcarAsistenciaRequest request) {
+        return asistenciaService.marcarEntrada(request);
     }
 
-    // Recibe JSON en el body
-    @PostMapping("/marcarSalida")
-    public RegistroResponse marcarSalida(@RequestBody RegistroAsistencia payload) {
-        return asistenciaService.marcarSalida(payload.getIdEmpleado(), payload.getNombre());
+    @PostMapping("/salida")
+    public MarcarAsistenciaResponse marcarSalida(@RequestBody MarcarAsistenciaRequest request) {
+        return asistenciaService.marcarSalida(request);
+    }
+
+    @GetMapping("/empleado/{idEmpleado}")
+    public List<Asistencia> listar(@PathVariable Long idEmpleado) {
+        return asistenciaService.listarPorEmpleado(idEmpleado);
     }
 }
 

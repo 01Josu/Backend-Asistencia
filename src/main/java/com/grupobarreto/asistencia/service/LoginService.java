@@ -1,42 +1,63 @@
 package com.grupobarreto.asistencia.service;
 
+import com.grupobarreto.asistencia.dto.LoginRequest;
+import com.grupobarreto.asistencia.dto.LoginResponse;
+
 import com.grupobarreto.asistencia.model.Empleado;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.grupobarreto.asistencia.model.Usuario;
+import com.grupobarreto.asistencia.repository.EmpleadoRepository;
+import com.grupobarreto.asistencia.repository.UsuarioRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Service
 public class LoginService {
 
-    private final String EXCEL_PATH = "C:/Asistencias/Empleados.xlsx"; // ruta a tu archivo
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
-    public Empleado login(String usuario, String contraseña) throws IOException {
-        try (FileInputStream file = new FileInputStream(EXCEL_PATH);
-             Workbook workbook = new XSSFWorkbook(file)) {
+    public LoginResponse login(LoginRequest request) {
 
-            Sheet sheet = workbook.getSheetAt(0);
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+        
+        if (request.getUsuario() == null || request.getUsuario().isBlank()
+                || request.getPassword() == null || request.getPassword().isBlank()) {
 
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // saltar encabezado
-
-                String id = String.valueOf((int) row.getCell(0).getNumericCellValue());
-                String apellido = row.getCell(1).getStringCellValue();
-                String nombre = row.getCell(2).getStringCellValue();
-                String user = row.getCell(3).getStringCellValue();
-                String pass = row.getCell(4).getStringCellValue();
-
-                if (user.equals(usuario) && pass.equals(contraseña)) { // sensible a mayúsculas/minúsculas
-                    return new Empleado(id, apellido, nombre, user, pass);
-                }
-            }
+            return new LoginResponse(false, "Usuario y contraseña obligatorios",
+                    null, null, null, null);
         }
 
-        return null; // no se encontró
-    }
+        Usuario usuario = usuarioRepository.findByUsuario(request.getUsuario())
+                .orElse(null);
 
+        if (usuario == null) {
+            return new LoginResponse(false, "Usuario incorrecto",
+                    null, null, null, null);
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), usuario.getPasswordHash())) {
+            return new LoginResponse(false, "Contraseña incorrecta", null, null, null, null);
+        }
+
+        Empleado emp = usuario.getEmpleado();
+
+        if (!emp.isActivo()) {
+            return new LoginResponse(false, "Empleado inactivo",
+                    null, null, null, null);
+        }
+
+        return new LoginResponse(
+                true,
+                "Login exitoso",
+                usuario.getIdUsuario(),
+                emp.getIdEmpleado(),
+                emp.getNombres(),
+                emp.getApellidos()
+        );
+    }
 }
+

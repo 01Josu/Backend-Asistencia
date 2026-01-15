@@ -1,25 +1,49 @@
 package com.grupobarreto.asistencia.model;
 
-public class Empleado {
-    private String id;
-    private String apellido;
-    private String nombre;
-    private String usuario;
-    private String contraseña;
+import jakarta.persistence.*;
 
-    // Constructor
-    public Empleado(String id, String apellido, String nombre, String usuario, String contraseña) {
-        this.id = id;
-        this.apellido = apellido;
-        this.nombre = nombre;
-        this.usuario = usuario;
-        this.contraseña = contraseña;
+@Entity
+@Table(name = "empleado")
+public class Empleado {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idEmpleado;
+
+    @Column(unique = true)
+    private String codigoEmpleado;
+
+    private String nombres;
+    private String apellidos;
+
+    private boolean activo = true;
+
+    private java.time.LocalDate fechaIngreso;
+
+    public Empleado() {
     }
 
-    // Getters y setters
-    public String getId() { return id; }
-    public String getApellido() { return apellido; }
-    public String getNombre() { return nombre; }
-    public String getUsuario() { return usuario; }
-    public String getContraseña() { return contraseña; }
+    public Long getIdEmpleado() {
+        return idEmpleado;
+    }
+
+    public String getCodigoEmpleado() {
+        return codigoEmpleado;
+    }
+
+    public String getNombres() {
+        return nombres;
+    }
+
+    public String getApellidos() {
+        return apellidos;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public java.time.LocalDate getFechaIngreso() {
+        return fechaIngreso;
+    }
 }

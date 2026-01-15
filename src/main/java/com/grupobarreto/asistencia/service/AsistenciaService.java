@@ -1,130 +1,131 @@
 package com.grupobarreto.asistencia.service;
 
-import com.grupobarreto.asistencia.model.RegistroAsistencia;
-import com.grupobarreto.asistencia.model.RegistroResponse;
-import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.grupobarreto.asistencia.dto.MarcarAsistenciaRequest;
+import com.grupobarreto.asistencia.dto.MarcarAsistenciaResponse;
+
+import com.grupobarreto.asistencia.model.*;
+import com.grupobarreto.asistencia.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.io.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @Service
 public class AsistenciaService {
 
-    private static final String CARPETA = "C:/Asistencias/";
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
-    private String getArchivoDelMes() {
-        LocalDate fecha = LocalDate.now();
-        return CARPETA + "asistencias_" + fecha.getYear() + "_" + String.format("%02d", fecha.getMonthValue()) + ".xlsx";
-    }
+    @Autowired
+    private EmpleadoRepository empleadoRepository;
 
-    private void crearExcelSiNoExiste(String archivoPath) throws Exception {
-        File file = new File(archivoPath);
-        if (!file.exists()) {
-            Workbook workbook = new XSSFWorkbook();
-            Sheet sheet = workbook.createSheet("Asistencias");
+    @Autowired
+    private AsistenciaRepository asistenciaRepository;
 
-            Row header = sheet.createRow(0);
-            header.createCell(0).setCellValue("ID");
-            header.createCell(1).setCellValue("Nombre");
-            header.createCell(2).setCellValue("Fecha");
-            header.createCell(3).setCellValue("Hora");
-            header.createCell(4).setCellValue("Tipo");
+    @Autowired
+    private HorarioEmpleadoRepository horarioEmpleadoRepository;
 
-            try (FileOutputStream fos = new FileOutputStream(file)) {
-                workbook.write(fos);
-            }
-            workbook.close();
-        }
-    }
+    public MarcarAsistenciaResponse marcarEntrada(MarcarAsistenciaRequest request) {
 
-    private boolean yaRegistrado(String idEmpleado, String fecha, String tipo) throws Exception {
-        String archivo = getArchivoDelMes();
-        File file = new File(archivo);
-        if (!file.exists()) return false;
+        Usuario usuario = usuarioRepository.findById(request.getIdUsuario())
+                .orElse(null);
 
-        try (FileInputStream fis = new FileInputStream(archivo);
-             Workbook workbook = new XSSFWorkbook(fis)) {
-            Sheet sheet = workbook.getSheetAt(0);
-            for (Row row : sheet) {
-                if (row.getRowNum() == 0) continue; // encabezado
-                String id = row.getCell(0).getStringCellValue();
-                String f = row.getCell(2).getStringCellValue();
-                String t = row.getCell(4).getStringCellValue();
-                if (id.equals(idEmpleado) && f.equals(fecha) && t.equals(tipo)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    private RegistroAsistencia agregarRegistro(RegistroAsistencia registro) throws Exception {
-        String archivo = getArchivoDelMes();
-        crearExcelSiNoExiste(archivo);
-
-        try (FileInputStream fis = new FileInputStream(archivo);
-             Workbook workbook = new XSSFWorkbook(fis)) {
-
-            Sheet sheet = workbook.getSheetAt(0);
-            int ultimaFila = sheet.getLastRowNum() + 1;
-
-            Row row = sheet.createRow(ultimaFila);
-            row.createCell(0).setCellValue(registro.getIdEmpleado());
-            row.createCell(1).setCellValue(registro.getNombre());
-            row.createCell(2).setCellValue(registro.getFecha());
-            row.createCell(3).setCellValue(registro.getHora());
-            row.createCell(4).setCellValue(registro.getTipo());
-
-            try (FileOutputStream fos = new FileOutputStream(archivo)) {
-                workbook.write(fos);
-            }
+        if (usuario == null) {
+            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null);
         }
 
-        return registro;
+        Empleado empleado = usuario.getEmpleado();
+
+        LocalDate hoy = LocalDate.now();
+        LocalTime ahora = LocalTime.now();
+
+        Asistencia asistencia = asistenciaRepository
+                .findByEmpleadoAndFecha(empleado, hoy)
+                .orElseGet(() -> {
+                    Asistencia a = new Asistencia();
+                    a.setEmpleado(empleado);
+                    a.setFecha(hoy);
+                    return a;
+                });
+
+        if (asistencia.getHoraEntradaReal() != null) {
+            return new MarcarAsistenciaResponse(false, "Ya registraste tu entrada hoy", null, null, null);
+        }
+
+        asistencia.setHoraEntradaReal(ahora);
+
+        horarioEmpleadoRepository
+                .findByEmpleadoAndFechaFinIsNull(empleado)
+                .ifPresent(he -> {
+                    LocalTime esperado = he.getHorario().getHoraEntrada();
+                    int tolerancia = he.getHorario().getToleranciaMinutos();
+
+                    if (ahora.isAfter(esperado.plusMinutes(tolerancia))) {
+                        asistencia.setEstadoAsistencia("TARDANZA");
+                    } else {
+                        asistencia.setEstadoAsistencia("PRESENTE");
+                    }
+                });
+
+        asistenciaRepository.save(asistencia);
+
+        return new MarcarAsistenciaResponse(
+                true,
+                "Entrada registrada",
+                hoy.toString(),
+                ahora.toString(),
+                "Entrada"
+        );
     }
 
-    public RegistroResponse marcarEntrada(String idEmpleado, String nombre) {
-        try {
-            String fecha = LocalDate.now().toString();
-            if (yaRegistrado(idEmpleado, fecha, "Entrada")) {
-                return new RegistroResponse(false, "Ya registraste tu entrada hoy", null);
-            }
-            String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            RegistroAsistencia registro = new RegistroAsistencia(idEmpleado, nombre, fecha, hora, "Entrada");
-            agregarRegistro(registro);
-            return new RegistroResponse(true, "Entrada registrada correctamente", registro);
-        } catch (Exception e) {
-            return new RegistroResponse(false, "Error: " + e.getMessage(), null);
+    public MarcarAsistenciaResponse marcarSalida(MarcarAsistenciaRequest request) {
+
+        Usuario usuario = usuarioRepository.findById(request.getIdUsuario()).orElse(null);
+        if (usuario == null) {
+            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null);
         }
+
+        Empleado empleado = usuario.getEmpleado();
+
+        LocalDate hoy = LocalDate.now();
+        LocalTime ahora = LocalTime.now();
+
+        Asistencia asistencia = asistenciaRepository
+                .findByEmpleadoAndFecha(empleado, hoy)
+                .orElse(null);
+
+        if (asistencia == null || asistencia.getHoraEntradaReal() == null) {
+            return new MarcarAsistenciaResponse(false, "Primero debes marcar entrada", null, null, null);
+        }
+
+        if (asistencia.getHoraSalidaReal() != null) {
+            return new MarcarAsistenciaResponse(false, "Ya registraste tu salida hoy", null, null, null);
+        }
+
+        asistencia.setHoraSalidaReal(ahora);
+        asistenciaRepository.save(asistencia);
+
+        return new MarcarAsistenciaResponse(
+                true,
+                "Salida registrada",
+                hoy.toString(),
+                ahora.toString(),
+                "Salida"
+        );
     }
+    
+    public List<Asistencia> listarPorEmpleado(Long idEmpleado) {
 
-    public RegistroResponse marcarSalida(String idEmpleado, String nombre) {
-        try {
-            String fecha = LocalDate.now().toString();
+        Empleado empleado = empleadoRepository.findById(idEmpleado)
+                .orElse(null);
 
-            // Verificar si ya registró entrada
-            if (!yaRegistrado(idEmpleado, fecha, "Entrada")) {
-                return new RegistroResponse(false, "No puedes registrar la salida sin haber registrado la entrada", null);
-            }
-
-            // Verificar si ya registró salida
-            if (yaRegistrado(idEmpleado, fecha, "Salida")) {
-                return new RegistroResponse(false, "Ya registraste tu salida hoy", null);
-            }
-
-            String hora = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            RegistroAsistencia registro = new RegistroAsistencia(idEmpleado, nombre, fecha, hora, "Salida");
-            agregarRegistro(registro);
-
-            return new RegistroResponse(true, "Salida registrada correctamente", registro);
-
-        } catch (Exception e) {
-            return new RegistroResponse(false, "Error: " + e.getMessage(), null);
+        if (empleado == null) {
+            return List.of(); // lista vacía si no existe
         }
+
+        return asistenciaRepository.findAllByEmpleado(empleado);
     }
 
 }

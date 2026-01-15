@@ -15,8 +15,8 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOrigins(
-                            "http://localhost:4200" // desarrollo
-                            // luego agregaremos producción
+                            "http://localhost:4200", // desarrollo
+                            "https://frontend-asistencia-2fqr-d12p1czft-in-whre-s-projects.vercel.app" // producción
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")

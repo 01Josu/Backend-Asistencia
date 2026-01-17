@@ -10,11 +10,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 public class AsistenciaService {
 
+    private static final ZoneId ZONA_PERU = ZoneId.of("America/Lima");
+    
     @Autowired
     private UsuarioRepository usuarioRepository;
 
@@ -38,8 +41,8 @@ public class AsistenciaService {
 
         Empleado empleado = usuario.getEmpleado();
 
-        LocalDate hoy = LocalDate.now();
-        LocalTime ahora = LocalTime.now();
+        LocalDate hoy = LocalDate.now(ZONA_PERU);
+        LocalTime ahora = LocalTime.now(ZONA_PERU);
 
         Asistencia asistencia = asistenciaRepository
                 .findByEmpleadoAndFecha(empleado, hoy)
@@ -89,8 +92,8 @@ public class AsistenciaService {
 
         Empleado empleado = usuario.getEmpleado();
 
-        LocalDate hoy = LocalDate.now();
-        LocalTime ahora = LocalTime.now();
+        LocalDate hoy = LocalDate.now(ZONA_PERU);
+        LocalTime ahora = LocalTime.now(ZONA_PERU);
 
         Asistencia asistencia = asistenciaRepository
                 .findByEmpleadoAndFecha(empleado, hoy)

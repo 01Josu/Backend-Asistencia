@@ -5,6 +5,7 @@ import com.grupobarreto.asistencia.model.Asistencia;
 import com.grupobarreto.asistencia.model.Justificacion;
 import com.grupobarreto.asistencia.repository.AsistenciaRepository;
 import com.grupobarreto.asistencia.repository.JustificacionRepository;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -44,6 +45,19 @@ public class JustificacionService {
         justificacionRepository.save(j);
 
         return "Justificación registrada correctamente";
+    }
+    
+    public String aprobarJustificacion(Long idJustificacion, boolean aprobado) {
+        Justificacion j = justificacionRepository.findById(idJustificacion).orElse(null);
+        if (j == null) return "Justificación no encontrada";
+
+        j.setAprobado(aprobado);
+        justificacionRepository.save(j);
+        return "Justificación actualizada";
+    }
+    
+    public List<Justificacion> listar() {
+        return justificacionRepository.findAll();
     }
 
 }

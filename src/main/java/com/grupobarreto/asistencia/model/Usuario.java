@@ -14,11 +14,18 @@ public class Usuario {
     @JoinColumn(name = "id_empleado")
     private Empleado empleado;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String usuario;
 
-    @Column(name = "password_hash")
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RolUsuario rol;
+
+    @Column(nullable = false)
+    private boolean activo = true;
 
     public Usuario() {
     }
@@ -53,5 +60,21 @@ public class Usuario {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public RolUsuario getRol() {
+        return rol;
+    }
+
+    public void setRol(RolUsuario rol) {
+        this.rol = rol;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
     }
 }

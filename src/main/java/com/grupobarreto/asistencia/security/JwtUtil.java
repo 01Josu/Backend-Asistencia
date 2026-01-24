@@ -32,18 +32,26 @@ public class JwtUtil {
         log.info("JWT inicializado (expiración={} ms)", expirationMs);
     }
 
-    public String generateToken(String username, String rol, Long idUsuario) {
+    public String generateToken(
+            String username,
+            String rol,
+            Long idUsuario,
+            Integer sessionVersion
+    ) {
 
         Date issuedAt = new Date();
         Date expiration = new Date(issuedAt.getTime() + expirationMs);
 
-        log.info("Generando token para usuario={} rol={} expira={}",
-                username, rol, expiration);
+        log.info(
+            "Generando token para usuario={} rol={} sessionVersion={} expira={}",
+            username, rol, sessionVersion, expiration
+        );
 
         return Jwts.builder()
                 .subject(username)
                 .claim("rol", rol)
                 .claim("idUsuario", idUsuario)
+                .claim("sessionVersion", sessionVersion)
                 .issuedAt(issuedAt)
                 .expiration(expiration)
                 .signWith(key, Jwts.SIG.HS256)
@@ -91,4 +99,9 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload();
     }
+    
+    public Integer extractSessionVersion(String token) {
+        return parseClaims(token).get("sessionVersion", Integer.class);
+    }
+
 }

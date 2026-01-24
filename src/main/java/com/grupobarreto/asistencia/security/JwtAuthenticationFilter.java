@@ -1,5 +1,7 @@
 package com.grupobarreto.asistencia.security;
 
+import com.grupobarreto.asistencia.model.Usuario;
+import com.grupobarreto.asistencia.repository.UsuarioRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +30,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
+    @Autowired
+    private UsuarioRepository usuarioRepository;
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
@@ -45,7 +50,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         log.debug("➡️ {} {}", request.getMethod(), request.getRequestURI());
 
-        // CORS preflight
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
             return;
@@ -54,7 +58,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
-            log.debug("No se encontró header Authorization");
             filterChain.doFilter(request, response);
             return;
         }
@@ -62,18 +65,37 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String token = header.substring(7);
 
-            log.debug("Token recibido");
 
             if (!jwtUtil.validateToken(token)) {
-                log.warn("Token inválido o expirado");
                 throw new RuntimeException("Token inválido o expirado");
             }
 
-            String username = jwtUtil.extractUsername(token);
-            log.info("Token válido para usuario: {}", username);
+
+            Long idUsuario = jwtUtil.extractUserId(token);
+            Integer tokenSessionVersion =
+                    jwtUtil.extractSessionVersion(token);
+
+ 
+            Usuario usuario = usuarioRepository
+                    .findById(idUsuario)
+                    .orElseThrow(() ->
+                            new RuntimeException("Usuario no existe"));
+
+
+            if (!usuario.isActivo()) {
+                throw new RuntimeException("Usuario inactivo");
+            }
+
+
+            if (!tokenSessionVersion.equals(usuario.getSessionVersion())) {
+                throw new RuntimeException("Sesión inválida o cerrada");
+            }
+
 
             UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(username);
+                    userDetailsService.loadUserByUsername(
+                            usuario.getUsuario()
+                    );
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
@@ -83,26 +105,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
 
             authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
+                    new WebAuthenticationDetailsSource()
+                            .buildDetails(request)
             );
 
-            SecurityContextHolder.getContext()
+            SecurityContextHolder
+                    .getContext()
                     .setAuthentication(authentication);
-
-            log.debug("Usuario autenticado con roles: {}",
-                    userDetails.getAuthorities());
 
             filterChain.doFilter(request, response);
 
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            log.error("Error en autenticación JWT", e);
+            log.warn("JWT rechazado: {}", e.getMessage());
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("No autorizado");
+            response.setContentType("application/json");
+            response.getWriter().write("""
+                {
+                  "error": "No autorizado",
+                  "message": "Sesión expirada, cerrada o inválida"
+                }
+            """);
         }
     }
 }
-
 
 

@@ -26,15 +26,16 @@ public class LoginService {
 
     public LoginResponse login(LoginRequest request) {
 
-        // 1️⃣ Validación básica
         if (request.getUsuario() == null || request.getUsuario().isBlank()
                 || request.getPassword() == null || request.getPassword().isBlank()) {
 
-            return new LoginResponse(false, "Usuario y contraseña obligatorios",
-                    null, null, null, null, null, null);
+            return new LoginResponse(
+                    false,
+                    "Usuario y contraseña obligatorios",
+                    null, null, null, null, null, null
+            );
         }
 
-        // 2️⃣ Autenticación real
         try {
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
@@ -43,34 +44,43 @@ public class LoginService {
                 )
             );
         } catch (BadCredentialsException e) {
-            return new LoginResponse(false, "Usuario o contraseña incorrectos",
-                    null, null, null, null, null, null);
+            return new LoginResponse(
+                    false,
+                    "Usuario o contraseña incorrectos",
+                    null, null, null, null, null, null
+            );
         }
 
-        // 3️⃣ Obtener usuario autenticado
         Usuario usuario = usuarioRepository.findByUsuario(request.getUsuario())
                 .orElse(null);
 
         if (usuario == null || !usuario.isActivo()) {
-            return new LoginResponse(false, "Usuario inactivo",
-                    null, null, null, null, null, null);
+            return new LoginResponse(
+                    false,
+                    "Usuario inactivo",
+                    null, null, null, null, null, null
+            );
         }
 
-        // 4️⃣ Validación de empleado
         Empleado emp = usuario.getEmpleado();
         if (emp != null && !emp.isActivo()) {
-            return new LoginResponse(false, "Empleado inactivo",
-                    null, null, null, null, null, null);
+            return new LoginResponse(
+                    false,
+                    "Empleado inactivo",
+                    null, null, null, null, null, null
+            );
         }
 
-        // 5️⃣ JWT CON idUsuario
+        usuario.setSessionVersion(usuario.getSessionVersion() + 1);
+        usuarioRepository.save(usuario);
+
         String token = jwtUtil.generateToken(
                 usuario.getUsuario(),
                 usuario.getRol().name(),
-                usuario.getIdUsuario()
+                usuario.getIdUsuario(),
+                usuario.getSessionVersion()
         );
 
-        // 6️⃣ Respuesta
         return new LoginResponse(
                 true,
                 "Login exitoso",

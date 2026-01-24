@@ -50,7 +50,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return new User(
                 usuario.getUsuario(),
                 usuario.getPasswordHash(),
-                true,   // enabled (ya validado)
+                true,
                 true,
                 true,
                 true,

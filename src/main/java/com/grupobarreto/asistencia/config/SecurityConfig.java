@@ -80,6 +80,7 @@ public class SecurityConfig {
                 log.info("Configurando reglas de autorización");
                 auth
                     .requestMatchers("/api/login/**", "/api/bootstrap/**", "/error").permitAll()
+                    .requestMatchers("/api/logout").authenticated()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers("/api/user/**").hasAnyRole("ADMIN", "USER")
                     .anyRequest().authenticated();

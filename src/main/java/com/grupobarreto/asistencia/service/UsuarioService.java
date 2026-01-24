@@ -24,7 +24,6 @@ public class UsuarioService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    // ================= CREAR USUARIO =================
     public Usuario crearUsuario(Long idEmpleado, String usuario, String password, String rol) {
 
         if (usuario == null || usuario.isBlank()) {
@@ -35,19 +34,16 @@ public class UsuarioService {
             throw new RuntimeException("La contraseña es obligatoria");
         }
 
-        // 1️⃣ Validar usuario único
         if (usuarioRepository.existsByUsuario(usuario)) {
             throw new RuntimeException("El usuario ya existe");
         }
 
-        // 2️⃣ Empleado opcional (ADMIN no necesita empleado)
         Empleado emp = null;
         if (idEmpleado != null) {
             emp = empleadoRepository.findById(idEmpleado)
                     .orElseThrow(() -> new RuntimeException("Empleado no existe"));
         }
 
-        // 3️⃣ Validar rol
         RolUsuario rolEnum;
         try {
             rolEnum = RolUsuario.valueOf(rol);
@@ -55,7 +51,6 @@ public class UsuarioService {
             throw new RuntimeException("Rol no válido");
         }
 
-        // 4️⃣ Crear usuario
         Usuario u = new Usuario();
         u.setEmpleado(emp);
         u.setUsuario(usuario);
@@ -66,17 +61,14 @@ public class UsuarioService {
         return usuarioRepository.save(u);
     }
 
-    // ================= LISTAR =================
     public List<Usuario> listar() {
         return usuarioRepository.findAll();
     }
 
-    // ================= BUSCAR =================
     public Usuario buscar(Long id) {
         return usuarioRepository.findById(id).orElse(null);
     }
 
-    // ================= ACTUALIZAR =================
     public Usuario actualizar(Long id, UsuarioRequest request) {
 
         Usuario u = usuarioRepository.findById(id)
@@ -105,7 +97,6 @@ public class UsuarioService {
         return usuarioRepository.save(u);
     }
 
-    // ================= ELIMINAR =================
     public boolean eliminar(Long id) {
         if (!usuarioRepository.existsById(id)) return false;
         usuarioRepository.deleteById(id);

@@ -5,7 +5,7 @@ public class UsuarioRequest {
     private String usuario;
     private String password;
     private String rol;
-    private Boolean activo;  // <-- agregado
+    private Boolean activo;
 
     public Long getIdEmpleado() {
         return idEmpleado;

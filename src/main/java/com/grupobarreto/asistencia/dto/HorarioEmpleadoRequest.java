@@ -1,4 +1,3 @@
-
 package com.grupobarreto.asistencia.dto;
 
 public class HorarioEmpleadoRequest {
@@ -25,7 +24,5 @@ public class HorarioEmpleadoRequest {
         this.idEmpleado = idEmpleado;
         this.idHorario = idHorario;
     }
-    
-    
 }
 

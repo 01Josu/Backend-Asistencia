@@ -24,11 +24,14 @@ public class Usuario {
     @Column(nullable = false)
     private RolUsuario rol;
 
+    
     @Column(nullable = false)
     private boolean activo = true;
 
-    public Usuario() {
-    }
+    @Column(name = "session_version", nullable = false)
+    private Integer sessionVersion = 0;
+
+    public Usuario() {}
 
     public Long getIdUsuario() {
         return idUsuario;
@@ -77,4 +80,13 @@ public class Usuario {
     public void setActivo(boolean activo) {
         this.activo = activo;
     }
+
+    public Integer getSessionVersion() {
+        return sessionVersion;
+    }
+
+    public void setSessionVersion(Integer sessionVersion) {
+        this.sessionVersion = sessionVersion;
+    }
 }
+

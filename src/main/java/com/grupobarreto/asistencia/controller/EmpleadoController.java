@@ -32,7 +32,6 @@ public class EmpleadoController {
         return empleadoService.buscar(id);
     }
 
-    // SOLO PARA PRUEBA DE SEGURIDAD (bien hecho 👍)
     @GetMapping("/test")
     public String test(Authentication auth) {
         log.info("Usuario autenticado: {}, roles={}",

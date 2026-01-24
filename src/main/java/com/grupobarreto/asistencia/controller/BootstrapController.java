@@ -21,13 +21,13 @@ public class BootstrapController {
     @PostMapping("/admin")
     public Usuario crearAdminInicial(@RequestBody UsuarioBootstrapRequest request) {
 
-        // 1️⃣ Verificar si ya existe un ADMIN
+        
         boolean existeAdmin = usuarioRepository.existsByRol(RolUsuario.ADMIN);
         if (existeAdmin) {
             throw new RuntimeException("Ya existe un administrador. Bootstrap bloqueado.");
         }
 
-        // 2️⃣ Crear ADMIN sin empleado
+        
         return usuarioService.crearUsuario(
                 null,
                 request.getUsuario(),

@@ -8,16 +8,21 @@ public class LoginResponse {
     private Long idEmpleado;
     private String nombres;
     private String apellidos;
+    private String rol;
+    private String token;
 
     public LoginResponse(boolean success, String mensaje,
                          Long idUsuario, Long idEmpleado,
-                         String nombres, String apellidos) {
+                         String nombres, String apellidos,
+                         String rol, String token) {
         this.success = success;
         this.mensaje = mensaje;
         this.idUsuario = idUsuario;
         this.idEmpleado = idEmpleado;
         this.nombres = nombres;
         this.apellidos = apellidos;
+        this.rol = rol;
+        this.token = token;
     }
 
     public boolean isSuccess() {
@@ -42,5 +47,13 @@ public class LoginResponse {
 
     public String getApellidos() {
         return apellidos;
+    }
+
+    public String getRol() {
+        return rol;
+    }
+
+    public String getToken() {
+        return token;
     }
 }

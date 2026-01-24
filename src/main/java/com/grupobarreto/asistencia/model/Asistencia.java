@@ -21,7 +21,7 @@ public class Asistencia {
     private LocalTime horaEntradaReal;
     private LocalTime horaSalidaReal;
 
-    private String estadoAsistencia; // PRESENTE / TARDANZA / FALTA
+    private String estadoAsistencia; // PRESENTE / TARDANZA
 
     
     public Asistencia() {

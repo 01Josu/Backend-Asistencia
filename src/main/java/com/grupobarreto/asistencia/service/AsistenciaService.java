@@ -2,7 +2,6 @@ package com.grupobarreto.asistencia.service;
 
 import com.grupobarreto.asistencia.dto.MarcarAsistenciaRequest;
 import com.grupobarreto.asistencia.dto.MarcarAsistenciaResponse;
-
 import com.grupobarreto.asistencia.model.*;
 import com.grupobarreto.asistencia.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +16,7 @@ import java.util.List;
 public class AsistenciaService {
 
     private static final ZoneId ZONA_PERU = ZoneId.of("America/Lima");
-    
+
     @Autowired
     private UsuarioRepository usuarioRepository;
 
@@ -30,6 +29,9 @@ public class AsistenciaService {
     @Autowired
     private HorarioEmpleadoRepository horarioEmpleadoRepository;
 
+    @Autowired
+    private GeoLocationService geoLocationService;
+
     public MarcarAsistenciaResponse marcarEntrada(MarcarAsistenciaRequest request) {
 
         Usuario usuario = usuarioRepository.findById(request.getIdUsuario())
@@ -40,6 +42,30 @@ public class AsistenciaService {
         }
 
         Empleado empleado = usuario.getEmpleado();
+        if (empleado == null) {
+            return new MarcarAsistenciaResponse(
+                    false,
+                    "Este usuario no está asociado a un empleado",
+                    null,
+                    null,
+                    null
+            );
+        }
+
+        Sede sedeValida = geoLocationService.validarUbicacion(
+                request.getLatitud(),
+                request.getLongitud()
+        );
+
+        if (sedeValida == null) {
+            return new MarcarAsistenciaResponse(
+                    false,
+                    "No estás dentro de ninguna sede registrada",
+                    null,
+                    null,
+                    null
+            );
+        }
 
         LocalDate hoy = LocalDate.now(ZONA_PERU);
         LocalTime ahora = LocalTime.now(ZONA_PERU);
@@ -57,20 +83,31 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(false, "Ya registraste tu entrada hoy", null, null, null);
         }
 
+        var horarioEmpleadoOpt = horarioEmpleadoRepository
+                .findByEmpleadoAndFechaFinIsNull(empleado);
+
+        if (horarioEmpleadoOpt.isEmpty()) {
+            return new MarcarAsistenciaResponse(
+                    false,
+                    "Usted no tiene horario asignado",
+                    null,
+                    null,
+                    null
+            );
+        }
+
+        HorarioEmpleado he = horarioEmpleadoOpt.get();
+
         asistencia.setHoraEntradaReal(ahora);
 
-        horarioEmpleadoRepository
-                .findByEmpleadoAndFechaFinIsNull(empleado)
-                .ifPresent(he -> {
-                    LocalTime esperado = he.getHorario().getHoraEntrada();
-                    int tolerancia = he.getHorario().getToleranciaMinutos();
+        LocalTime esperado = he.getHorario().getHoraEntrada();
+        int tolerancia = he.getHorario().getToleranciaMinutos();
 
-                    if (ahora.isAfter(esperado.plusMinutes(tolerancia))) {
-                        asistencia.setEstadoAsistencia("TARDANZA");
-                    } else {
-                        asistencia.setEstadoAsistencia("PRESENTE");
-                    }
-                });
+        if (ahora.isAfter(esperado.plusMinutes(tolerancia))) {
+            asistencia.setEstadoAsistencia("TARDANZA");
+        } else {
+            asistencia.setEstadoAsistencia("PRESENTE");
+        }
 
         asistenciaRepository.save(asistencia);
 
@@ -91,6 +128,30 @@ public class AsistenciaService {
         }
 
         Empleado empleado = usuario.getEmpleado();
+        if (empleado == null) {
+            return new MarcarAsistenciaResponse(
+                    false,
+                    "Este usuario no está asociado a un empleado",
+                    null,
+                    null,
+                    null
+            );
+        }
+
+        Sede sedeValida = geoLocationService.validarUbicacion(
+                request.getLatitud(),
+                request.getLongitud()
+        );
+
+        if (sedeValida == null) {
+            return new MarcarAsistenciaResponse(
+                    false,
+                    "No estás dentro de ninguna sede registrada",
+                    null,
+                    null,
+                    null
+            );
+        }
 
         LocalDate hoy = LocalDate.now(ZONA_PERU);
         LocalTime ahora = LocalTime.now(ZONA_PERU);
@@ -118,17 +179,28 @@ public class AsistenciaService {
                 "Salida"
         );
     }
-    
-    public List<Asistencia> listarPorEmpleado(Long idEmpleado) {
 
-        Empleado empleado = empleadoRepository.findById(idEmpleado)
-                .orElse(null);
+    public void marcarFaltasDelDia() {
 
-        if (empleado == null) {
-            return List.of(); // lista vacía si no existe
+        LocalDate hoy = LocalDate.now(ZONA_PERU);
+
+        List<Empleado> empleadosActivos = empleadoRepository.findByActivoTrue();
+
+        for (Empleado empleado : empleadosActivos) {
+
+            boolean yaTieneAsistencia = asistenciaRepository
+                    .findByEmpleadoAndFecha(empleado, hoy)
+                    .isPresent();
+
+            if (!yaTieneAsistencia) {
+                Asistencia falta = new Asistencia();
+                falta.setEmpleado(empleado);
+                falta.setFecha(hoy);
+                falta.setEstadoAsistencia("FALTA");
+
+                asistenciaRepository.save(falta);
+            }
         }
-
-        return asistenciaRepository.findAllByEmpleado(empleado);
     }
 
 }

@@ -25,10 +25,5 @@ public class AsistenciaController {
     public MarcarAsistenciaResponse marcarSalida(@RequestBody MarcarAsistenciaRequest request) {
         return asistenciaService.marcarSalida(request);
     }
-
-    @GetMapping("/empleado/{idEmpleado}")
-    public List<Asistencia> listar(@PathVariable Long idEmpleado) {
-        return asistenciaService.listarPorEmpleado(idEmpleado);
-    }
 }
 

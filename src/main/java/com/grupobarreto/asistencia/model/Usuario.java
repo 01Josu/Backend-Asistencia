@@ -14,14 +14,24 @@ public class Usuario {
     @JoinColumn(name = "id_empleado")
     private Empleado empleado;
 
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String usuario;
 
-    @Column(name = "password_hash")
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
-    public Usuario() {
-    }
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RolUsuario rol;
+
+    
+    @Column(nullable = false)
+    private boolean activo = true;
+
+    @Column(name = "session_version", nullable = false)
+    private Integer sessionVersion = 0;
+
+    public Usuario() {}
 
     public Long getIdUsuario() {
         return idUsuario;
@@ -54,4 +64,29 @@ public class Usuario {
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
     }
+
+    public RolUsuario getRol() {
+        return rol;
+    }
+
+    public void setRol(RolUsuario rol) {
+        this.rol = rol;
+    }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
+    public Integer getSessionVersion() {
+        return sessionVersion;
+    }
+
+    public void setSessionVersion(Integer sessionVersion) {
+        this.sessionVersion = sessionVersion;
+    }
 }
+

@@ -17,7 +17,9 @@ public class Horario {
     private Integer toleranciaMinutos;
     private String descripcion;
 
-    
+    @Column(nullable = false)
+    private Boolean activo = true;
+
     public Horario() {
     }
 
@@ -60,4 +62,22 @@ public class Horario {
     public void setDescripcion(String descripcion) {
         this.descripcion = descripcion;
     }
+
+    public boolean isActivo() {
+        return activo;
+    }
+
+    public void setActivo(boolean activo) {
+        this.activo = activo;
+    }
+
+    public Boolean getActivo() {
+        return activo;
+    }
+
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
+    }
+    
+    
 }

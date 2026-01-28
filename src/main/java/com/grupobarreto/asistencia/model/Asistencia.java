@@ -5,7 +5,12 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
-@Table(name = "asistencia")
+@Table(
+    name = "asistencia",
+    uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"id_empleado", "fecha"})
+    }
+)
 public class Asistencia {
 
     @Id

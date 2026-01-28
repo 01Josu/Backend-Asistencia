@@ -16,6 +16,10 @@ public class Justificacion {
 
     private String motivo;
     private Boolean aprobado;
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_justificacion")
+    private TipoJustificacion tipo;
 
     public Justificacion() {
     }
@@ -50,5 +54,13 @@ public class Justificacion {
 
     public void setAprobado(Boolean aprobado) {
         this.aprobado = aprobado;
+    }
+    
+    public TipoJustificacion getTipo() {
+        return tipo;
+    }
+
+    public void setTipo(TipoJustificacion tipo) {
+        this.tipo = tipo;
     }
 }

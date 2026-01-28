@@ -6,6 +6,9 @@ import com.grupobarreto.asistencia.model.*;
 import com.grupobarreto.asistencia.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.dao.DataIntegrityViolationException;
+
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -32,13 +35,14 @@ public class AsistenciaService {
     @Autowired
     private GeoLocationService geoLocationService;
 
+    @Transactional
     public MarcarAsistenciaResponse marcarEntrada(MarcarAsistenciaRequest request) {
 
         Usuario usuario = usuarioRepository.findById(request.getIdUsuario())
                 .orElse(null);
 
         if (usuario == null) {
-            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null);
+            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null,null,null);
         }
 
         Empleado empleado = usuario.getEmpleado();
@@ -46,6 +50,8 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(
                     false,
                     "Este usuario no está asociado a un empleado",
+                    null,
+                    null,
                     null,
                     null,
                     null
@@ -61,6 +67,8 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(
                     false,
                     "No estás dentro de ninguna sede registrada",
+                    null,
+                    null,
                     null,
                     null,
                     null
@@ -80,7 +88,7 @@ public class AsistenciaService {
                 });
 
         if (asistencia.getHoraEntradaReal() != null) {
-            return new MarcarAsistenciaResponse(false, "Ya registraste tu entrada hoy", null, null, null);
+            return new MarcarAsistenciaResponse(false, "Ya registraste tu entrada hoy", null, null, null, null, null);
         }
 
         var horarioEmpleadoOpt = horarioEmpleadoRepository
@@ -90,6 +98,8 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(
                     false,
                     "Usted no tiene horario asignado",
+                    null,
+                    null,
                     null,
                     null,
                     null
@@ -108,23 +118,48 @@ public class AsistenciaService {
         } else {
             asistencia.setEstadoAsistencia("PRESENTE");
         }
+        
+        boolean requiereJustificacion = false;
+        String tipoJustificacion = null;
 
-        asistenciaRepository.save(asistencia);
+        if ("TARDANZA".equalsIgnoreCase(asistencia.getEstadoAsistencia())) {
+            requiereJustificacion = true;
+            tipoJustificacion = "TARDANZA";
+        }
+
+        try {
+            asistenciaRepository.save(asistencia);
+        } catch (DataIntegrityViolationException e) {
+            return new MarcarAsistenciaResponse(
+                    false,
+                    "Ya existe una asistencia registrada para hoy",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+            );
+        }
 
         return new MarcarAsistenciaResponse(
                 true,
                 "Entrada registrada",
+                asistencia.getIdAsistencia(),
+                asistencia.getEstadoAsistencia(),
                 hoy.toString(),
                 ahora.toString(),
-                "Entrada"
+                "Entrada",
+                requiereJustificacion,
+                tipoJustificacion
         );
     }
 
+    @Transactional
     public MarcarAsistenciaResponse marcarSalida(MarcarAsistenciaRequest request) {
 
         Usuario usuario = usuarioRepository.findById(request.getIdUsuario()).orElse(null);
         if (usuario == null) {
-            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null);
+            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null, null, null);
         }
 
         Empleado empleado = usuario.getEmpleado();
@@ -132,6 +167,8 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(
                     false,
                     "Este usuario no está asociado a un empleado",
+                    null,
+                    null,
                     null,
                     null,
                     null
@@ -149,6 +186,8 @@ public class AsistenciaService {
                     "No estás dentro de ninguna sede registrada",
                     null,
                     null,
+                    null,
+                    null,
                     null
             );
         }
@@ -161,11 +200,31 @@ public class AsistenciaService {
                 .orElse(null);
 
         if (asistencia == null || asistencia.getHoraEntradaReal() == null) {
-            return new MarcarAsistenciaResponse(false, "Primero debes marcar entrada", null, null, null);
+            return new MarcarAsistenciaResponse(false, "Primero debes marcar entrada", null, null, null, null, null);
         }
 
         if (asistencia.getHoraSalidaReal() != null) {
-            return new MarcarAsistenciaResponse(false, "Ya registraste tu salida hoy", null, null, null);
+            return new MarcarAsistenciaResponse(false, "Ya registraste tu salida hoy", null, null, null, null, null);
+        }
+
+        // 👇 LÓGICA DE SOBRETIEMPO
+        boolean requiereJustificacion = false;
+        String tipoJustificacion = null;
+
+        // obtenemos horario vigente
+        HorarioEmpleado horarioEmpleado = horarioEmpleadoRepository
+                .findHorarioVigentePorFecha(empleado, hoy)
+                .orElse(null);
+
+        if (horarioEmpleado != null && horarioEmpleado.getHorario() != null) {
+
+            LocalTime horaSalidaHorario = horarioEmpleado.getHorario().getHoraSalida();
+
+            // si sale 30 min después de la hora de salida => sobretiempo
+            if (ahora.isAfter(horaSalidaHorario.plusMinutes(30))) {
+                requiereJustificacion = true;
+                tipoJustificacion = "SOBRETIEMPO";
+            }
         }
 
         asistencia.setHoraSalidaReal(ahora);
@@ -174,11 +233,16 @@ public class AsistenciaService {
         return new MarcarAsistenciaResponse(
                 true,
                 "Salida registrada",
+                asistencia.getIdAsistencia(),
+                asistencia.getEstadoAsistencia(),
                 hoy.toString(),
                 ahora.toString(),
-                "Salida"
+                "Salida",
+                requiereJustificacion,
+                tipoJustificacion
         );
     }
+
 
     public void marcarFaltasDelDia() {
 

@@ -8,7 +8,12 @@ import com.grupobarreto.asistencia.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.http.HttpStatus;
+
+
 import java.util.List;
+import java.util.Map;
+import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -37,9 +42,21 @@ public class AdminController {
     }
 
     @GetMapping("/empleados/{id}")
-    public Empleado obtenerEmpleado(@PathVariable Long id) {
-        return empleadoService.buscar(id);
+    public ResponseEntity<?> obtenerEmpleado(@PathVariable Long id) {
+
+        Empleado emp = empleadoService.buscar(id);
+
+        if (emp == null) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                            "message", "Empleado no encontrado"
+                    ));
+        }
+
+        return ResponseEntity.ok(emp);
     }
+
 
     @PostMapping("/empleados")
     public Empleado crearEmpleado(@RequestBody EmpleadoRequest request) {
@@ -58,6 +75,7 @@ public class AdminController {
         return empleadoService.crear(emp);
     }
 
+
     @PutMapping("/empleados/{id}")
     public Empleado actualizarEmpleado(@PathVariable Long id,
                                        @RequestBody EmpleadoRequest request) {
@@ -73,11 +91,16 @@ public class AdminController {
     }
 
     @DeleteMapping("/empleados/{id}")
-    public String eliminarEmpleado(@PathVariable Long id) {
-        return empleadoService.eliminar(id)
-                ? "Empleado eliminado"
-                : "Empleado no encontrado";
+    public ResponseEntity<?> eliminarEmpleado(@PathVariable Long id) {
+        boolean eliminado = empleadoService.eliminar(id);
+        if (eliminado) {
+            return ResponseEntity.ok(Map.of("message", "Empleado desactivado correctamente"));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(Map.of("message", "Empleado no encontrado"));
+        }
     }
+
 
     // ================= USUARIOS =================
 

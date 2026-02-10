@@ -42,7 +42,7 @@ public class AsistenciaService {
                 .orElse(null);
 
         if (usuario == null) {
-            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null,null,null);
+            return new MarcarAsistenciaResponse(false, "Usuario no existe", null, null, null, null, null);
         }
 
         Empleado empleado = usuario.getEmpleado();
@@ -91,34 +91,46 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(false, "Ya registraste tu entrada hoy", null, null, null, null, null);
         }
 
-        var horarioEmpleadoOpt = horarioEmpleadoRepository
-                .findByEmpleadoAndFechaFinIsNull(empleado);
+        LocalTime esperado;
+        int tolerancia;
 
-        if (horarioEmpleadoOpt.isEmpty()) {
-            return new MarcarAsistenciaResponse(
-                    false,
-                    "Usted no tiene horario asignado",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-            );
+        // 🔵 SÁBADO ESPECIAL PARA TODOS
+        if (hoy.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
+
+            esperado = LocalTime.of(9, 0);
+            tolerancia = 10; // tolerancia fija sábado
+
+        } else {
+
+            var horarioEmpleadoOpt = horarioEmpleadoRepository
+                    .findByEmpleadoAndFechaFinIsNull(empleado);
+
+            if (horarioEmpleadoOpt.isEmpty()) {
+                return new MarcarAsistenciaResponse(
+                        false,
+                        "Usted no tiene horario asignado",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
+            }
+
+            HorarioEmpleado he = horarioEmpleadoOpt.get();
+
+            esperado = he.getHorario().getHoraEntrada();
+            tolerancia = he.getHorario().getToleranciaMinutos();
         }
 
-        HorarioEmpleado he = horarioEmpleadoOpt.get();
-
         asistencia.setHoraEntradaReal(ahora);
-
-        LocalTime esperado = he.getHorario().getHoraEntrada();
-        int tolerancia = he.getHorario().getToleranciaMinutos();
 
         if (ahora.isAfter(esperado.plusMinutes(tolerancia))) {
             asistencia.setEstadoAsistencia("TARDANZA");
         } else {
             asistencia.setEstadoAsistencia("PRESENTE");
         }
-        
+
         boolean requiereJustificacion = false;
         String tipoJustificacion = null;
 
@@ -207,24 +219,41 @@ public class AsistenciaService {
             return new MarcarAsistenciaResponse(false, "Ya registraste tu salida hoy", null, null, null, null, null);
         }
 
-        // 👇 LÓGICA DE SOBRETIEMPO
         boolean requiereJustificacion = false;
         String tipoJustificacion = null;
 
-        // obtenemos horario vigente
-        HorarioEmpleado horarioEmpleado = horarioEmpleadoRepository
-                .findHorarioVigentePorFecha(empleado, hoy)
-                .orElse(null);
+        LocalTime horaSalidaHorario;
 
-        if (horarioEmpleado != null && horarioEmpleado.getHorario() != null) {
+        // 🔵 SÁBADO ESPECIAL PARA TODOS
+        if (hoy.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
 
-            LocalTime horaSalidaHorario = horarioEmpleado.getHorario().getHoraSalida();
+            horaSalidaHorario = LocalTime.of(13, 0);
 
-            // si sale 30 min después de la hora de salida => sobretiempo
-            if (ahora.isAfter(horaSalidaHorario.plusMinutes(30))) {
-                requiereJustificacion = true;
-                tipoJustificacion = "SOBRETIEMPO";
+        } else {
+
+            HorarioEmpleado horarioEmpleado = horarioEmpleadoRepository
+                    .findHorarioVigentePorFecha(empleado, hoy)
+                    .orElse(null);
+
+            if (horarioEmpleado == null || horarioEmpleado.getHorario() == null) {
+                return new MarcarAsistenciaResponse(
+                        false,
+                        "No tienes horario asignado",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null
+                );
             }
+
+            horaSalidaHorario = horarioEmpleado.getHorario().getHoraSalida();
+        }
+
+        // 🔥 LÓGICA DE SOBRETIEMPO (igual que antes)
+        if (ahora.isAfter(horaSalidaHorario.plusMinutes(30))) {
+            requiereJustificacion = true;
+            tipoJustificacion = "SOBRETIEMPO";
         }
 
         asistencia.setHoraSalidaReal(ahora);
@@ -242,8 +271,7 @@ public class AsistenciaService {
                 tipoJustificacion
         );
     }
-
-
+    
     public void marcarFaltasDelDia() {
 
         LocalDate hoy = LocalDate.now(ZONA_PERU);

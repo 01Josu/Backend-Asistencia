@@ -41,6 +41,20 @@ public class AdminController {
         return empleadoService.listar();
     }
 
+    @GetMapping("/empleados/buscar-por-nombre")
+    public ResponseEntity<?> buscarPorNombre(@RequestParam String nombre) {
+
+        List<Empleado> lista = empleadoService.buscarPorNombre(nombre);
+
+        if (lista.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "No se encontraron empleados con ese nombre"));
+        }
+
+        return ResponseEntity.ok(lista);
+    }
+    
     @GetMapping("/empleados/{id}")
     public ResponseEntity<?> obtenerEmpleado(@PathVariable Long id) {
 

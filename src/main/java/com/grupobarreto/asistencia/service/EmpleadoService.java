@@ -20,6 +20,16 @@ public class EmpleadoService {
     public Empleado buscar(Long id) {
         return empleadoRepository.findById(id).orElse(null);
     }
+    
+    public List<Empleado> buscarPorNombre(String nombre) {
+
+        if (nombre == null || nombre.isBlank()) {
+            throw new RuntimeException("Debe ingresar un nombre para buscar");
+        }
+
+        return empleadoRepository
+                .findByActivoTrueAndNombresContainingIgnoreCase(nombre);
+    }
 
     public Empleado crear(Empleado empleado) {
 

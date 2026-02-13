@@ -9,4 +9,5 @@ public interface EmpleadoRepository extends JpaRepository<Empleado, Long> {
 
     boolean existsByCodigoEmpleado(String codigoEmpleado);
     List<Empleado> findByActivoTrue();
+    List<Empleado> findByActivoTrueAndNombresContainingIgnoreCase(String nombre);
 }

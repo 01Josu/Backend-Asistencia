@@ -11,13 +11,14 @@ public class HorarioEmpleado {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idHorarioEmpleado;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_empleado")
     private Empleado empleado;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_horario")
     private Horario horario;
+
 
     private LocalDate fechaInicio;
     private LocalDate fechaFin;

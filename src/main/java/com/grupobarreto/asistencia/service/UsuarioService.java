@@ -75,6 +75,16 @@ public class UsuarioService {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if (request.getUsuario() != null && !request.getUsuario().isBlank()) {
+
+            if (!u.getUsuario().equals(request.getUsuario())) {
+
+                boolean existe = usuarioRepository.existsByUsuario(request.getUsuario());
+
+                if (existe) {
+                    throw new RuntimeException("Ya existe un usuario con ese nombre");
+                }
+            }
+
             u.setUsuario(request.getUsuario());
         }
 
@@ -101,5 +111,9 @@ public class UsuarioService {
         if (!usuarioRepository.existsById(id)) return false;
         usuarioRepository.deleteById(id);
         return true;
+    }
+    
+    public List<Usuario> buscarPorNombre(String nombre) {
+        return usuarioRepository.findByUsuarioContainingIgnoreCase(nombre);
     }
 }

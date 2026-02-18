@@ -115,7 +115,6 @@ public class AdminController {
         }
     }
 
-
     // ================= USUARIOS =================
 
     @GetMapping("/usuarios")
@@ -126,6 +125,20 @@ public class AdminController {
     @GetMapping("/usuarios/{id}")
     public Usuario obtenerUsuario(@PathVariable Long id) {
         return usuarioService.buscar(id);
+    }
+
+    @GetMapping("/usuarios/buscar-por-nombre")
+    public ResponseEntity<?> buscarPorNombreU(@RequestParam String nombre) {
+
+        List<Usuario> lista = usuarioService.buscarPorNombre(nombre);
+
+        if (lista.isEmpty()) {
+            return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "No se encontraron usuarios con ese nombre"));
+        }
+
+        return ResponseEntity.ok(lista);
     }
 
     @PostMapping("/usuarios")
@@ -145,11 +158,18 @@ public class AdminController {
     }
 
     @DeleteMapping("/usuarios/{id}")
-    public String eliminarUsuario(@PathVariable Long id) {
-        return usuarioService.eliminar(id)
-                ? "Usuario eliminado"
-                : "Usuario no encontrado";
+    public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
+
+        boolean eliminado = usuarioService.eliminar(id);
+
+        if (!eliminado) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                                 .body(Map.of("message", "Usuario no encontrado"));
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Usuario eliminado correctamente"));
     }
+
 
     // ================= HORARIOS =================
 
@@ -170,10 +190,12 @@ public class AdminController {
     }
 
     @DeleteMapping("/horarios/{id}")
-    public String eliminarHorario(@PathVariable Long id) {
-        return horarioService.eliminar(id)
-                ? "Horario eliminado"
-                : "Horario no encontrado";
+    public ResponseEntity<String> eliminarHorario(@PathVariable Long id) {
+        String mensaje = horarioService.eliminar(id);
+        if (mensaje.equals("Horario no encontrado")) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(mensaje);
+        }
+        return ResponseEntity.ok(mensaje);
     }
 
     // ================= HORARIO - EMPLEADO =================
@@ -200,11 +222,17 @@ public class AdminController {
 
 
     @DeleteMapping("/horario-empleado/{id}")
-    public String eliminarAsignacion(@PathVariable Long id) {
-        return horarioEmpleadoService.eliminar(id)
-                ? "Asignación eliminada"
-                : "No existe";
+    public ResponseEntity<?> eliminarAsignacion(@PathVariable Long id) {
+        boolean eliminado = horarioEmpleadoService.eliminar(id);
+
+        if (eliminado) {
+            return ResponseEntity.ok().body(Map.of("message", "Asignación eliminada"));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "No existe"));
+        }
     }
+
 
     // ================= JUSTIFICACIONES =================
 

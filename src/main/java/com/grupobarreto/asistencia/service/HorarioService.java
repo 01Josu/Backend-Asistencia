@@ -47,9 +47,9 @@ public class HorarioService {
     }
 
 
-    public boolean eliminar(Long id) {
+    public String eliminar(Long id) {
         Horario h = horarioRepository.findById(id).orElse(null);
-        if (h == null) return false;
+        if (h == null) return "Horario no encontrado";
 
         boolean usado = horarioEmpleadoRepository.existsByHorario(h);
 
@@ -57,12 +57,13 @@ public class HorarioService {
             if (Boolean.TRUE.equals(h.getActivo())) {
                 h.setActivo(false);
                 horarioRepository.save(h);
+                return "Horario desactivado porque está en uso";
+            } else {
+                return "Horario ya estaba desactivado";
             }
         } else {
             horarioRepository.delete(h);
+            return "Horario eliminado correctamente";
         }
-
-        return true;
     }
-
 }

@@ -24,7 +24,7 @@ public class HorarioEmpleadoService {
     private HorarioRepository horarioRepository;
 
     public List<HorarioEmpleado> listar() {
-        return horarioEmpleadoRepository.findAll();
+        return horarioEmpleadoRepository.findAllConRelaciones();
     }
 
     public HorarioEmpleado buscar(Long id) {

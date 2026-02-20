@@ -62,7 +62,7 @@ public class UsuarioService {
     }
 
     public List<Usuario> listar() {
-        return usuarioRepository.findAll();
+        return usuarioRepository.findAllConEmpleado();
     }
 
     public Usuario buscar(Long id) {

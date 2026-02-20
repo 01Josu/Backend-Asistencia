@@ -1,5 +1,6 @@
 package com.grupobarreto.asistencia.service;
 
+import com.grupobarreto.asistencia.dto.JustificacionAdminDTO;
 import com.grupobarreto.asistencia.dto.JustificacionRequest;
 import com.grupobarreto.asistencia.model.Asistencia;
 import com.grupobarreto.asistencia.model.Horario;
@@ -12,6 +13,8 @@ import com.grupobarreto.asistencia.repository.JustificacionRepository;
 import java.time.LocalTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -78,8 +81,8 @@ public class JustificacionService {
         return "Justificación actualizada";
     }
 
-    public List<Justificacion> listar() {
-        return justificacionRepository.findAll();
+    public Page<JustificacionAdminDTO> listar(Pageable pageable) {
+        return justificacionRepository.listarParaAdmin(pageable);
     }
 
     private boolean esSobretiempo(Asistencia asistencia) {

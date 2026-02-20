@@ -2,6 +2,7 @@ package com.grupobarreto.asistencia.controller;
 
 import com.grupobarreto.asistencia.dto.EmpleadoRequest;
 import com.grupobarreto.asistencia.dto.HorarioEmpleadoRequest;
+import com.grupobarreto.asistencia.dto.JustificacionAdminDTO;
 import com.grupobarreto.asistencia.dto.UsuarioRequest;
 import com.grupobarreto.asistencia.model.*;
 import com.grupobarreto.asistencia.service.*;
@@ -13,6 +14,10 @@ import org.springframework.http.HttpStatus;
 
 import java.util.List;
 import java.util.Map;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 
 @RestController
@@ -237,8 +242,11 @@ public class AdminController {
     // ================= JUSTIFICACIONES =================
 
     @GetMapping("/justificaciones")
-    public List<Justificacion> listarJustificaciones() {
-        return justificacionService.listar();
+    public Page<JustificacionAdminDTO> listarJustificaciones(
+            @PageableDefault(size = 10, sort = "asistencia.fecha", direction = Sort.Direction.DESC)
+            Pageable pageable) {
+
+        return justificacionService.listar(pageable);
     }
 
     @PutMapping("/justificaciones/{id}/aprobar")

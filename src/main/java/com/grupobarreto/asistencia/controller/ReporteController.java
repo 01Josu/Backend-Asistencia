@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
 import org.springframework.http.ResponseEntity;
 
 import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.ss.util.CellRangeAddress;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 @RestController
@@ -82,9 +83,61 @@ public class ReporteController {
 
         Workbook wb = new XSSFWorkbook();
 
+        // =============================
+        // ESTILOS
+        // =============================
+
+        // Estilo con borde (tabla y bloques)
+        CellStyle styleBorde = wb.createCellStyle();
+        styleBorde.setAlignment(HorizontalAlignment.CENTER);
+        styleBorde.setVerticalAlignment(VerticalAlignment.CENTER);
+        styleBorde.setBorderTop(BorderStyle.THICK);
+        styleBorde.setBorderBottom(BorderStyle.THICK);
+        styleBorde.setBorderLeft(BorderStyle.THICK);
+        styleBorde.setBorderRight(BorderStyle.THICK);
+
+        Font fontBold = wb.createFont();
+        fontBold.setBold(true);
+        styleBorde.setFont(fontBold);
+
+        // Estilo título grande (18)
+        CellStyle styleTitulo = wb.createCellStyle();
+        styleTitulo.setAlignment(HorizontalAlignment.CENTER);
+        styleTitulo.setVerticalAlignment(VerticalAlignment.CENTER);
+        styleTitulo.setBorderTop(BorderStyle.THICK);
+        styleTitulo.setBorderBottom(BorderStyle.THICK);
+        styleTitulo.setBorderLeft(BorderStyle.THICK);
+        styleTitulo.setBorderRight(BorderStyle.THICK);
+
+        Font fontTitulo = wb.createFont();
+        fontTitulo.setBold(true);
+        fontTitulo.setFontHeightInPoints((short) 18);
+        styleTitulo.setFont(fontTitulo);
+
+        // Estilo header (tabla principal)
+        CellStyle styleHeader = wb.createCellStyle();
+        Font fontHeader = wb.createFont();
+        fontHeader.setBold(true);
+        styleHeader.setFont(fontHeader);
+        styleHeader.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        styleHeader.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        styleHeader.setAlignment(HorizontalAlignment.CENTER);
+        styleHeader.setBorderBottom(BorderStyle.THIN);
+        styleHeader.setBorderTop(BorderStyle.THIN);
+        styleHeader.setBorderLeft(BorderStyle.THIN);
+        styleHeader.setBorderRight(BorderStyle.THIN);
+
+        // Estilo celda normal
+        CellStyle styleCell = wb.createCellStyle();
+        styleCell.setAlignment(HorizontalAlignment.CENTER);
+        styleCell.setVerticalAlignment(VerticalAlignment.CENTER);
+        styleCell.setBorderBottom(BorderStyle.THIN);
+        styleCell.setBorderTop(BorderStyle.THIN);
+        styleCell.setBorderLeft(BorderStyle.THIN);
+        styleCell.setBorderRight(BorderStyle.THIN);
+
         Month mes = fin.getMonth();
-        String nombreMes = mes.getDisplayName(TextStyle.FULL, new Locale("es"))
-                .toUpperCase();
+        String nombreMes = mes.getDisplayName(TextStyle.FULL, new Locale("es")).toUpperCase();
 
         var datos = excelService.reporte(inicio, fin);
         var horasExtras = excelService.reporteHorasExtras(inicio, fin);
@@ -95,29 +148,62 @@ public class ReporteController {
         for (var entry : porEmpleado.entrySet()) {
 
             String empleado = entry.getKey();
-
-            String nombreHoja = empleado.length() > 30
-                    ? empleado.substring(0, 30)
-                    : empleado;
-
+            String nombreHoja = empleado.length() > 30 ? empleado.substring(0, 30) : empleado;
             Sheet sheet = wb.createSheet(nombreHoja);
 
             int rowNum = 0;
 
-            Row titulo = sheet.createRow(rowNum++);
-            titulo.createCell(0).setCellValue("CONTROL DE ASISTENCIA");
+            // =============================
+            // TITULO (2 filas combinadas B-G)
+            // =============================
 
-            rowNum++;
+            Row titulo1 = sheet.createRow(rowNum++);
+            Cell cellTitulo = titulo1.createCell(1);
+            cellTitulo.setCellValue("CONTROL DE ASISTENCIA");
+            cellTitulo.setCellStyle(styleTitulo);
 
+            for (int i = 2; i <= 6; i++) {
+                Cell c = titulo1.createCell(i);
+                c.setCellStyle(styleBorde);
+            }
+
+            Row titulo2 = sheet.createRow(rowNum++);
+            for (int i = 1; i <= 6; i++) {
+                Cell c = titulo2.createCell(i);
+                c.setCellStyle(styleBorde);
+            }
+
+            sheet.addMergedRegion(new CellRangeAddress(
+                    titulo1.getRowNum(),
+                    titulo2.getRowNum(),
+                    1,
+                    6
+            ));
+
+            // =============================
+            // NOMBRE (B-G, centrado)
+            // =============================
             Row info = sheet.createRow(rowNum++);
-            info.createCell(0).setCellValue("NOMBRE:");
-            info.createCell(1).setCellValue(empleado);
 
-            rowNum++;
+            Cell cNombre = info.createCell(1);
+            cNombre.setCellValue("NOMBRE: " + empleado);
+            cNombre.setCellStyle(styleBorde);
 
-            Row horario = sheet.createRow(rowNum++);
-            horario.createCell(0).setCellValue("HORARIO DE TRABAJO:");
+            for (int i = 2; i <= 6; i++) {
+                Cell c = info.createCell(i);
+                c.setCellStyle(styleBorde);
+            }
 
+            sheet.addMergedRegion(new CellRangeAddress(
+                    info.getRowNum(),
+                    info.getRowNum(),
+                    1,
+                    6
+            ));
+
+            // =============================
+            // HORARIO (B-G, centrado)
+            // =============================
             var primer = entry.getValue().get(0);
 
             String entrada = primer.getHoraEntradaProgramada();
@@ -126,7 +212,6 @@ public class ReporteController {
             String textoHorario = "SIN HORARIO";
 
             if (entrada != null && salida != null && !entrada.isBlank()) {
-
                 java.time.LocalTime tEntrada = java.time.LocalTime.parse(entrada);
                 java.time.LocalTime tSalida = java.time.LocalTime.parse(salida);
 
@@ -138,93 +223,146 @@ public class ReporteController {
                         "SÁBADO: 09:00 - 13:00 = 4 HORAS";
             }
 
-            horario.createCell(1).setCellValue(textoHorario);
+            Row horario = sheet.createRow(rowNum++);
+
+            Cell cHorario = horario.createCell(1);
+            cHorario.setCellValue(textoHorario);
+            cHorario.setCellStyle(styleBorde);
+
+            for (int i = 2; i <= 6; i++) {
+                Cell c = horario.createCell(i);
+                c.setCellStyle(styleBorde);
+            }
+
+            sheet.addMergedRegion(new CellRangeAddress(
+                    horario.getRowNum(),
+                    horario.getRowNum(),
+                    1,
+                    6
+            ));
 
             rowNum++;
 
+            // =============================
+            // MES
+            // =============================
             Row mesRow = sheet.createRow(rowNum++);
-            mesRow.createCell(0).setCellValue(nombreMes);
+            Cell cMes = mesRow.createCell(0);
+            cMes.setCellValue(nombreMes);
+            cMes.setCellStyle(styleBorde);
 
             rowNum++;
 
+            // =============================
+            // TABLA PRINCIPAL (con estilo)
+            // =============================
             Row header = sheet.createRow(rowNum++);
-            header.createCell(0).setCellValue("FECHA");
-            header.createCell(1).setCellValue("HORA ENTRADA");
-            header.createCell(2).setCellValue("HORA INGRESO");
-            header.createCell(3).setCellValue("TARDANZA");
-            header.createCell(4).setCellValue("X");
-            header.createCell(5).setCellValue("HORA SALIDA");
-            header.createCell(6).setCellValue("CANTIDAD HORAS LABORADAS");
-            header.createCell(7).setCellValue("HORAS DIARIAS");
-            header.createCell(8).setCellValue("EXTRA");
-            header.createCell(9).setCellValue("PDTE");
+            String[] heads = {
+                    "FECHA","HORA ENTRADA","HORA INGRESO","TARDANZA","X",
+                    "HORA SALIDA","CANTIDAD HORAS LABORADAS","HORAS DIARIAS",
+                    "EXTRA","PDTE"
+            };
+
+            for (int i = 0; i < heads.length; i++) {
+                Cell h = header.createCell(i);
+                h.setCellValue(heads[i]);
+                h.setCellStyle(styleHeader);
+            }
 
             for (var dto : entry.getValue()) {
 
                 Row row = sheet.createRow(rowNum++);
 
-                row.createCell(0).setCellValue(dto.getFecha());
-                row.createCell(1).setCellValue(dto.getHoraEntradaReal());
-                row.createCell(2).setCellValue(dto.getHoraIngreso());
-                row.createCell(3).setCellValue(dto.getTardanza());
-                row.createCell(4).setCellValue(dto.getMarcaTardanza());
-                row.createCell(5).setCellValue(dto.getHoraSalida());
-                row.createCell(6).setCellValue(dto.getHorasLaboradas());
-                row.createCell(7).setCellValue(dto.getHorasDiarias());
-                row.createCell(8).setCellValue(dto.getExtra());
-                row.createCell(9).setCellValue(dto.getPendiente());
+                for (int i = 0; i <= 9; i++) {
+                    Cell c = row.createCell(i);
+                    c.setCellStyle(styleCell);
+                }
+
+                row.getCell(0).setCellValue(dto.getFecha());
+                row.getCell(1).setCellValue(dto.getHoraEntradaReal());
+                row.getCell(2).setCellValue(dto.getHoraIngreso());
+                row.getCell(3).setCellValue(dto.getTardanza());
+                row.getCell(4).setCellValue(dto.getMarcaTardanza());
+                row.getCell(5).setCellValue(dto.getHoraSalida());
+                row.getCell(6).setCellValue(dto.getHorasLaboradas());
+                row.getCell(7).setCellValue(dto.getHorasDiarias());
+                row.getCell(8).setCellValue(dto.getExtra());
+                row.getCell(9).setCellValue(dto.getPendiente());
             }
 
-            // ======================
-            // RESUMEN DERECHO
-            // ======================
-
+            // =============================
+            // RESUMEN DERECHO (centrado)
+            // =============================
             int colResumen = 12;
 
             long diasMes = java.time.temporal.ChronoUnit.DAYS.between(inicio, fin) + 1;
-
             long tardanzas = entry.getValue().stream()
                     .filter(d -> "TARDANZA".equalsIgnoreCase(d.getMarcaTardanza()))
                     .count();
 
             Row resumenTitulo = sheet.getRow(3);
             if (resumenTitulo == null) resumenTitulo = sheet.createRow(3);
-            resumenTitulo.createCell(colResumen).setCellValue("PERIODO");
+            Cell rTitulo = resumenTitulo.createCell(colResumen);
+            rTitulo.setCellValue("PERIODO");
+            rTitulo.setCellStyle(styleBorde);
 
             Row r1 = sheet.getRow(4);
             if (r1 == null) r1 = sheet.createRow(4);
-            r1.createCell(colResumen).setCellValue("DIAS DEL MES");
-            r1.createCell(colResumen + 1).setCellValue(diasMes);
+
+            Cell cPeriodo1 = r1.createCell(colResumen);
+            cPeriodo1.setCellValue("DIAS DEL MES");
+            cPeriodo1.setCellStyle(styleBorde);
+
+            Cell cPeriodo1Val = r1.createCell(colResumen + 1);
+            cPeriodo1Val.setCellValue(diasMes);
+            cPeriodo1Val.setCellStyle(styleBorde);
+
 
             Row r2 = sheet.getRow(5);
             if (r2 == null) r2 = sheet.createRow(5);
-            r2.createCell(colResumen).setCellValue("TARDANZAS");
-            r2.createCell(colResumen + 1).setCellValue(tardanzas);
 
-            // ======================
-            // HORAS EXTRAS > 30 MIN
-            // ======================
+            Cell cPeriodo2 = r2.createCell(colResumen);
+            cPeriodo2.setCellValue("TARDANZAS");
+            cPeriodo2.setCellStyle(styleBorde);
 
+            Cell cPeriodo2Val = r2.createCell(colResumen + 1);
+            cPeriodo2Val.setCellValue(tardanzas);
+            cPeriodo2Val.setCellStyle(styleBorde);
+
+            // =============================
+            // HORAS EXTRAS (tabla con borde)
+            // =============================
             rowNum += 2;
 
             Row tituloHE = sheet.createRow(rowNum++);
-            tituloHE.createCell(0).setCellValue("HORAS EXTRAS MAYORES A 30 MINUTOS");
+            Cell th = tituloHE.createCell(0);
+            th.setCellValue("HORAS EXTRAS MAYORES A 30 MINUTOS");
+            th.setCellStyle(styleBorde);
 
             Row headerHE = sheet.createRow(rowNum++);
-            headerHE.createCell(0).setCellValue("FECHA");
-            headerHE.createCell(1).setCellValue("SOBRETIEMPO");
-            headerHE.createCell(2).setCellValue("MOTIVO");
+            String[] headsHE = {"FECHA","SOBRETIEMPO","MOTIVO"};
+
+            for (int i = 0; i < headsHE.length; i++) {
+                Cell h = headerHE.createCell(i);
+                h.setCellValue(headsHE[i]);
+                h.setCellStyle(styleHeader);
+            }
 
             var extrasEmpleado = horasExtras.stream()
                     .filter(h -> h.getEmpleado().equalsIgnoreCase(empleado))
                     .toList();
 
             for (var he : extrasEmpleado) {
-
                 Row rowHE = sheet.createRow(rowNum++);
-                rowHE.createCell(0).setCellValue(he.getFecha());
-                rowHE.createCell(1).setCellValue(he.getSobretiempo());
-                rowHE.createCell(2).setCellValue(he.getMotivo());
+
+                for (int i = 0; i <= 2; i++) {
+                    Cell c = rowHE.createCell(i);
+                    c.setCellStyle(styleCell);
+                }
+
+                rowHE.getCell(0).setCellValue(he.getFecha());
+                rowHE.getCell(1).setCellValue(he.getSobretiempo());
+                rowHE.getCell(2).setCellValue(he.getMotivo());
             }
 
             for (int i = 0; i <= 12; i++) {
@@ -237,10 +375,8 @@ public class ReporteController {
         wb.close();
 
         return ResponseEntity.ok()
-                .header("Content-Disposition",
-                        "attachment; filename=REPORT DE ASISTENCIAS.xlsx")
-                .header("Content-Type",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                .header("Content-Disposition", "attachment; filename=REPORT DE ASISTENCIAS.xlsx")
+                .header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 .body(out.toByteArray());
     }
     

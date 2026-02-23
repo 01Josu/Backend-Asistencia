@@ -28,12 +28,14 @@ public interface JustificacionRepository extends JpaRepository<Justificacion, Lo
         FROM Justificacion j
         JOIN j.asistencia a
         JOIN a.empleado e
+        WHERE j.tipo = com.grupobarreto.asistencia.model.TipoJustificacion.SOBRETIEMPO
         """,
         countQuery = """
         SELECT COUNT(j)
         FROM Justificacion j
         JOIN j.asistencia a
         JOIN a.empleado e
+        WHERE j.tipo = com.grupobarreto.asistencia.model.TipoJustificacion.SOBRETIEMPO
         """
     )
     Page<JustificacionAdminDTO> listarParaAdmin(Pageable pageable);

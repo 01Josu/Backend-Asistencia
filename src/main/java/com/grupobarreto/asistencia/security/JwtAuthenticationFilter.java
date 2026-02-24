@@ -49,6 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         log.debug("➡️ {} {}", request.getMethod(), request.getRequestURI());
+        log.debug("Authorization header: {}", request.getHeader("Authorization"));
 
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             filterChain.doFilter(request, response);
@@ -58,6 +59,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
 
         if (header == null || !header.startsWith("Bearer ")) {
+            log.debug("No Authorization header o no empieza con Bearer");
             filterChain.doFilter(request, response);
             return;
         }
@@ -70,8 +72,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 throw new RuntimeException("Token inválido o expirado");
             }
 
-
+            log.debug("Token válido");
             Long idUsuario = jwtUtil.extractUserId(token);
+            log.debug("idUsuario extraído: {}", idUsuario);
             Integer tokenSessionVersion =
                     jwtUtil.extractSessionVersion(token);
 
@@ -81,7 +84,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .orElseThrow(() ->
                             new RuntimeException("Usuario no existe"));
 
-
+            
             if (!usuario.isActivo()) {
                 throw new RuntimeException("Usuario inactivo");
             }
@@ -117,7 +120,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         } catch (Exception e) {
             SecurityContextHolder.clearContext();
-            log.warn("JWT rechazado: {}", e.getMessage());
+            log.warn("JWT rechazado: {}", e.getMessage(), e);
 
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");

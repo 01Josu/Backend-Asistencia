@@ -365,8 +365,24 @@ public class ReporteController {
                 rowHE.getCell(2).setCellValue(he.getMotivo());
             }
 
-            for (int i = 0; i <= 12; i++) {
-                sheet.autoSizeColumn(i);
+            int[] anchos = {
+                4000, // FECHA
+                4500, // HORA ENTRADA
+                4500, // HORA INGRESO
+                3500, // TARDANZA
+                2500, // X
+                4500, // HORA SALIDA
+                6000, // CANTIDAD HORAS LABORADAS
+                4000, // HORAS DIARIAS
+                3000, // EXTRA
+                3000, // PDTE
+                2000,
+                2000,
+                5000  // RESUMEN
+            };
+
+            for (int i = 0; i < anchos.length; i++) {
+                sheet.setColumnWidth(i, anchos[i]);
             }
         }
 

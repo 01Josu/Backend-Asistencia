@@ -97,4 +97,20 @@ public interface ReporteRepository extends JpaRepository<Asistencia, Long> {
         @Param("inicio") LocalDate inicio,
         @Param("fin") LocalDate fin
     );
+    
+    @Query(value = """
+        SELECT 
+            COUNT(*) AS total_asistencias,
+            COALESCE(SUM(CASE WHEN a.estado_asistencia = 'TARDANZA' THEN 1 ELSE 0 END),0),
+            COALESCE(SUM(CASE WHEN a.estado_asistencia = 'FALTA' THEN 1 ELSE 0 END),0),
+            COALESCE(SUM(CASE WHEN j.id_asistencia IS NOT NULL THEN 1 ELSE 0 END),0)
+        FROM asistencia a
+        LEFT JOIN justificacion j 
+            ON a.id_asistencia = j.id_asistencia
+        WHERE a.fecha BETWEEN :inicio AND :fin
+    """, nativeQuery = true)
+    List<Object[]> resumenDashboard(
+        @Param("inicio") LocalDate inicio,
+        @Param("fin") LocalDate fin
+    );
 }

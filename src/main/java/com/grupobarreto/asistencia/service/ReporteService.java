@@ -22,11 +22,21 @@ public class ReporteService {
     // ===========================
 
     public DashboardResumenDTO resumen(LocalDate inicio, LocalDate fin) {
+
+        List<Object[]> result = repo.resumenDashboard(inicio, fin);
+
+        if (result.isEmpty()) {
+            return new DashboardResumenDTO();
+        }
+
+        Object[] r = result.get(0);
+
         DashboardResumenDTO dto = new DashboardResumenDTO();
-        dto.setTotalAsistencias(repo.totalAsistencias(inicio, fin));
-        dto.setTotalTardanzas(repo.totalTardanzas(inicio, fin));
-        dto.setTotalFaltas(repo.totalFaltas(inicio, fin));
-        dto.setTotalJustificadas(repo.totalJustificadas(inicio, fin));
+        dto.setTotalAsistencias(((Number) r[0]).longValue());
+        dto.setTotalTardanzas(((Number) r[1]).longValue());
+        dto.setTotalFaltas(((Number) r[2]).longValue());
+        dto.setTotalJustificadas(((Number) r[3]).longValue());
+
         return dto;
     }
 

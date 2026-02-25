@@ -136,6 +136,13 @@ public class ReporteController {
         styleCell.setBorderLeft(BorderStyle.THIN);
         styleCell.setBorderRight(BorderStyle.THIN);
 
+        // Estilo hora real (para PDTE)
+        CellStyle styleHora = wb.createCellStyle();
+        styleHora.cloneStyleFrom(styleCell);
+
+        DataFormat formatHora = wb.createDataFormat();
+        styleHora.setDataFormat(formatHora.getFormat("[h]:mm:ss"));
+        
         Month mes = fin.getMonth();
         String nombreMes = mes.getDisplayName(TextStyle.FULL, new Locale("es")).toUpperCase();
 
@@ -268,6 +275,8 @@ public class ReporteController {
                 h.setCellValue(heads[i]);
                 h.setCellStyle(styleHeader);
             }
+            
+            int filaInicioDatos = rowNum;
 
             for (var dto : entry.getValue()) {
 
@@ -287,8 +296,55 @@ public class ReporteController {
                 row.getCell(6).setCellValue(dto.getHorasLaboradas());
                 row.getCell(7).setCellValue(dto.getHorasDiarias());
                 row.getCell(8).setCellValue(dto.getExtra());
-                row.getCell(9).setCellValue(dto.getPendiente());
+                // ===== PDTE como hora real =====
+                String pendiente = dto.getPendiente();
+                Cell cellPdte = row.getCell(9);
+
+                if (pendiente != null && !pendiente.isBlank()) {
+
+                    java.time.LocalTime time = java.time.LocalTime.parse(pendiente);
+
+                    double excelTime = time.toSecondOfDay() / 86400.0;
+
+                    cellPdte.setCellValue(excelTime);
+                    cellPdte.setCellStyle(styleHora);
+
+                } else {
+                    cellPdte.setCellValue(0);
+                    cellPdte.setCellStyle(styleHora);
+                }
             }
+            
+            int filaFinDatos = rowNum - 1;
+
+            // ===== FILA TOTAL PDTE =====
+            Row filaTotal = sheet.createRow(rowNum++);
+
+            // Texto TOTAL
+            Cell cTextoTotal = filaTotal.createCell(8); // columna I
+            cTextoTotal.setCellValue("TOTAL:");
+            cTextoTotal.setCellStyle(styleHeader);
+
+            // Celda suma columna J (PDTE)
+            Cell cSuma = filaTotal.createCell(9);
+
+            // Fórmula SUM (Excel usa filas base 1)
+            String formula = String.format(
+                    "SUM(J%d:J%d)",
+                    filaInicioDatos + 1,
+                    filaFinDatos + 1
+            );
+
+            cSuma.setCellFormula(formula);
+
+            // Formato especial para horas acumuladas
+            CellStyle styleHoraTotal = wb.createCellStyle();
+            styleHoraTotal.cloneStyleFrom(styleHeader);
+
+            DataFormat format = wb.createDataFormat();
+            styleHoraTotal.setDataFormat(format.getFormat("[h]:mm:ss"));
+
+            cSuma.setCellStyle(styleHoraTotal);
 
             // =============================
             // RESUMEN DERECHO (centrado)
@@ -347,6 +403,7 @@ public class ReporteController {
                 h.setCellValue(headsHE[i]);
                 h.setCellStyle(styleHeader);
             }
+            int filaInicioExtras = rowNum;
 
             var extrasEmpleado = horasExtras.stream()
                     .filter(h -> h.getEmpleado().equalsIgnoreCase(empleado))
@@ -361,10 +418,53 @@ public class ReporteController {
                 }
 
                 rowHE.getCell(0).setCellValue(he.getFecha());
-                rowHE.getCell(1).setCellValue(he.getSobretiempo());
+                // ===== SOBRETIEMPO como hora real =====
+                String sobretiempo = he.getSobretiempo();
+                Cell cellSobre = rowHE.getCell(1);
+
+                if (sobretiempo != null && !sobretiempo.isBlank()) {
+
+                    java.time.LocalTime time = java.time.LocalTime.parse(sobretiempo);
+
+                    double excelTime = time.toSecondOfDay() / 86400.0;
+
+                    cellSobre.setCellValue(excelTime);
+                    cellSobre.setCellStyle(styleHora);
+
+                } else {
+                    cellSobre.setCellValue(0);
+                    cellSobre.setCellStyle(styleHora);
+                }
                 rowHE.getCell(2).setCellValue(he.getMotivo());
             }
+            int filaFinExtras = rowNum - 1;
 
+            // ===== FILA TOTAL HORAS EXTRAS =====
+            Row filaTotalHE = sheet.createRow(rowNum++);
+
+            Cell textoTotalHE = filaTotalHE.createCell(0);
+            textoTotalHE.setCellValue("TOTAL HORAS EXTRAS:");
+            textoTotalHE.setCellStyle(styleHeader);
+
+            Cell sumaHE = filaTotalHE.createCell(1);
+
+            String formulaHE = String.format(
+                    "SUM(B%d:B%d)",
+                    filaInicioExtras + 1,
+                    filaFinExtras + 1
+            );
+
+            sumaHE.setCellFormula(formulaHE);
+
+            // formato hora acumulada
+            CellStyle styleHoraTotalHE = wb.createCellStyle();
+            styleHoraTotalHE.cloneStyleFrom(styleHeader);
+
+            DataFormat formatHE = wb.createDataFormat();
+            styleHoraTotalHE.setDataFormat(formatHE.getFormat("[h]:mm:ss"));
+
+            sumaHE.setCellStyle(styleHoraTotalHE);
+            
             int[] anchos = {
                 4000, // FECHA
                 4500, // HORA ENTRADA

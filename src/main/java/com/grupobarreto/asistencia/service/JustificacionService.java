@@ -10,8 +10,8 @@ import com.grupobarreto.asistencia.model.TipoJustificacion;
 import com.grupobarreto.asistencia.repository.AsistenciaRepository;
 import com.grupobarreto.asistencia.repository.HorarioEmpleadoRepository;
 import com.grupobarreto.asistencia.repository.JustificacionRepository;
+import java.time.DayOfWeek;
 import java.time.LocalTime;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -104,10 +104,17 @@ public class JustificacionService {
 
         Horario horario = horarioEmpleado.getHorario();
 
-        LocalTime horaSalidaHorario = horario.getHoraSalida();
+        LocalTime horaBase;
+
+        // 👇 Ahora sí consideramos sábado
+        if (asistencia.getFecha().getDayOfWeek() == DayOfWeek.SATURDAY) {
+            horaBase = LocalTime.of(13, 0);
+        } else {
+            horaBase = horario.getHoraSalida();
+        }
 
         return asistencia.getHoraSalidaReal()
-                .isAfter(horaSalidaHorario.plusMinutes(MINUTOS_SOBRETIEMPO));
+                .isAfter(horaBase.plusMinutes(MINUTOS_SOBRETIEMPO));
     }
 
 }

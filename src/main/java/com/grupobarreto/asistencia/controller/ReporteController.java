@@ -16,7 +16,6 @@ import org.springframework.http.ResponseEntity;
 
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellRangeAddress;
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 @RestController
@@ -82,8 +81,7 @@ public class ReporteController {
             @RequestParam LocalDate fin
     ) throws Exception {
 
-        SXSSFWorkbook wb = new SXSSFWorkbook(100);
-        wb.setCompressTempFiles(true);
+        XSSFWorkbook wb = new XSSFWorkbook();
         
         // Estilo con borde (tabla y bloques)
         CellStyle styleBorde = wb.createCellStyle();
@@ -487,7 +485,6 @@ public class ReporteController {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         wb.write(out);
         wb.close();
-        wb.dispose();
 
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=REPORT DE ASISTENCIAS.xlsx")

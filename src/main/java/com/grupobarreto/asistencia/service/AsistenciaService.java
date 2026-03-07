@@ -134,11 +134,6 @@ public class AsistenciaService {
         boolean requiereJustificacion = false;
         String tipoJustificacion = null;
 
-        if ("TARDANZA".equalsIgnoreCase(asistencia.getEstadoAsistencia())) {
-            requiereJustificacion = true;
-            tipoJustificacion = "TARDANZA";
-        }
-
         try {
             asistenciaRepository.save(asistencia);
         } catch (DataIntegrityViolationException e) {

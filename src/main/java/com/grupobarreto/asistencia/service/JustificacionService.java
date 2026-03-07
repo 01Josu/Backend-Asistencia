@@ -45,27 +45,17 @@ public class JustificacionService {
             return "Ya existe una justificación para esta asistencia";
         }
 
-        boolean esTardanza =
-                "TARDANZA".equalsIgnoreCase(asistencia.getEstadoAsistencia());
-
         boolean esSobretiempo = esSobretiempo(asistencia);
 
-        if (!esTardanza && !esSobretiempo) {
-            return "La asistencia no cumple condiciones para justificar";
-        }
-
-        TipoJustificacion tipo;
-        if (esSobretiempo) {
-            tipo = TipoJustificacion.SOBRETIEMPO;
-        } else {
-            tipo = TipoJustificacion.TARDANZA;
+        if (!esSobretiempo) {
+            return "La asistencia no tiene sobretiempo para justificar";
         }
 
         Justificacion j = new Justificacion();
         j.setAsistencia(asistencia);
         j.setMotivo(request.getMotivo());
         j.setAprobado(false);
-        j.setTipo(tipo);
+        j.setTipo(TipoJustificacion.SOBRETIEMPO);
 
         justificacionRepository.save(j);
 

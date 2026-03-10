@@ -217,41 +217,13 @@ public class AsistenciaService {
         boolean requiereJustificacion = false;
         String tipoJustificacion = null;
 
-        LocalTime horaSalidaHorario;
+        asistencia.setHoraSalidaReal(ahora);
 
-        // 🔵 SÁBADO ESPECIAL PARA TODOS
-        if (hoy.getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
-
-            horaSalidaHorario = LocalTime.of(13, 0);
-
-        } else {
-
-            HorarioEmpleado horarioEmpleado = horarioEmpleadoRepository
-                    .findHorarioVigentePorFecha(empleado, hoy)
-                    .orElse(null);
-
-            if (horarioEmpleado == null || horarioEmpleado.getHorario() == null) {
-                return new MarcarAsistenciaResponse(
-                        false,
-                        "No tienes horario asignado",
-                        null,
-                        null,
-                        null,
-                        null,
-                        null
-                );
-            }
-
-            horaSalidaHorario = horarioEmpleado.getHorario().getHoraSalida();
-        }
-
-        // 🔥 LÓGICA DE SOBRETIEMPO (igual que antes)
-        if (ahora.isAfter(horaSalidaHorario.plusMinutes(30))) {
+        if (esSobretiempo(asistencia)) {
             requiereJustificacion = true;
             tipoJustificacion = "SOBRETIEMPO";
         }
-
-        asistencia.setHoraSalidaReal(ahora);
+        
         asistenciaRepository.save(asistencia);
 
         return new MarcarAsistenciaResponse(
@@ -288,6 +260,37 @@ public class AsistenciaService {
                 asistenciaRepository.save(falta);
             }
         }
+    }
+    
+    public boolean esSobretiempo(Asistencia asistencia) {
+
+        if (asistencia.getHoraSalidaReal() == null) {
+            return false;
+        }
+
+        LocalTime horaBase;
+
+        if (asistencia.getFecha().getDayOfWeek() == java.time.DayOfWeek.SATURDAY) {
+
+            horaBase = LocalTime.of(13, 0);
+
+        } else {
+
+            HorarioEmpleado horarioEmpleado = horarioEmpleadoRepository
+                    .findHorarioVigentePorFecha(
+                            asistencia.getEmpleado(),
+                            asistencia.getFecha()
+                    )
+                    .orElse(null);
+
+            if (horarioEmpleado == null || horarioEmpleado.getHorario() == null) {
+                return false;
+            }
+
+            horaBase = horarioEmpleado.getHorario().getHoraSalida();
+        }
+
+        return asistencia.getHoraSalidaReal().isAfter(horaBase.plusMinutes(30));
     }
 
 }

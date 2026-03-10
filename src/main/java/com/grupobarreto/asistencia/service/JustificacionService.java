@@ -12,6 +12,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+
+
+import java.time.DayOfWeek;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.grupobarreto.asistencia.dto.JustificacionPendienteDTO;
+import com.grupobarreto.asistencia.model.HorarioEmpleado;
+import com.grupobarreto.asistencia.repository.HorarioEmpleadoRepository;
+
 @Service
 public class JustificacionService {
 
@@ -20,6 +31,9 @@ public class JustificacionService {
     
     @Autowired
     private AsistenciaService asistenciaService;
+    
+    @Autowired
+    private HorarioEmpleadoRepository horarioEmpleadoRepository;
 
     @Autowired
     private JustificacionRepository justificacionRepository;
@@ -65,5 +79,50 @@ public class JustificacionService {
 
     public Page<JustificacionAdminDTO> listar(Pageable pageable) {
         return justificacionRepository.listarParaAdmin(pageable);
+    }
+    
+    public List<JustificacionPendienteDTO> obtenerPendientes(Long idEmpleado) {
+
+        List<Asistencia> asistencias =
+                asistenciaRepository.buscarAsistenciasSinJustificar(idEmpleado);
+
+        List<JustificacionPendienteDTO> pendientes = new ArrayList<>();
+
+        for (Asistencia a : asistencias) {
+
+            if (asistenciaService.esSobretiempo(a)) {
+
+                LocalTime horaEsperada;
+
+                if (a.getFecha().getDayOfWeek() == DayOfWeek.SATURDAY) {
+
+                    horaEsperada = LocalTime.of(13, 0);
+
+                } else {
+
+                    HorarioEmpleado horarioEmpleado =
+                            horarioEmpleadoRepository
+                            .findHorarioVigentePorFecha(a.getEmpleado(), a.getFecha())
+                            .orElse(null);
+
+                    if (horarioEmpleado == null || horarioEmpleado.getHorario() == null) {
+                        continue;
+                    }
+
+                    horaEsperada = horarioEmpleado.getHorario().getHoraSalida();
+                }
+
+                pendientes.add(
+                    new JustificacionPendienteDTO(
+                            a.getIdAsistencia(),
+                            a.getFecha(),
+                            a.getHoraSalidaReal(),
+                            horaEsperada
+                    )
+                );
+            }
+        }
+
+        return pendientes;
     }
 }

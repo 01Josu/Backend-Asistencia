@@ -6,7 +6,6 @@ import com.grupobarreto.asistencia.model.Asistencia;
 import com.grupobarreto.asistencia.model.Justificacion;
 import com.grupobarreto.asistencia.model.TipoJustificacion;
 import com.grupobarreto.asistencia.repository.AsistenciaRepository;
-import com.grupobarreto.asistencia.repository.HorarioEmpleadoRepository;
 import com.grupobarreto.asistencia.repository.JustificacionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
